@@ -1,0 +1,104 @@
+﻿/** Registration
+ *
+ * Handles the registration setup for the Resolver to determine
+ * the matched class for the provided Interface.
+ *
+ * Setup:
+ * "Assemblies": [
+ *   "Extension": (optional; default: "dll") "Extension of assemblies files",
+ *   "Interfaces": [ ... Any Interface Assemblies ... ],
+ *   "Entities": [ ... Any Entities/Classes assemblies ... ]
+ * ]
+ *
+ * "Registration": [
+ *   {
+ *     "interface": "Name of the Interface (no namespace)"
+ *     "class": "Full namespace and name of class",
+ *     "multiple": (optional; default: false) true if transient (multiple instances) and false if singleton (only one instance)
+ *     "factory": (optional; required with "factoryMethod") "Name of Factory Interface (no namespace; should match another entry in Registration)",
+ *     "factoryMethod": (optional; required with "factory") "Name of method to generate class"
+ *   }
+ * ]
+ */
+
+{
+  "Assemblies": {
+    "Interfaces": [
+      "ServiceLocator.JSON"
+    ],
+
+    "Entities": [
+      "GreenStone.SmallFarmsToolbox.Entities"
+    ]
+  },
+
+  "Registration": [
+    // Base Entities
+    {
+      "interface": "ILogger",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Logger",
+      "factory": "ILoggerFactory",
+      "factoryMethod": "GenerateLogger"
+    },
+    {
+      "interface": "IEmailer",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Emailer",
+      "factory": "IEmailerFactory",
+      "factoryMethod": "GenerateEmailer"
+    },
+
+    // Constants
+    {
+      "interface": "IEmailerConstants",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Constants.EmailerConstants"
+    },
+    {
+      "interface": "IGlobalConstants",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Constants.GlobalConstants"
+    },
+    {
+      "interface": "ILoggerConstants",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Constants.LoggerConstants"
+    },
+
+    // Converters
+    {
+      "interface": "IEventLogEntryTypeConverter",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Converters.EventLogEntryTypeConverter"
+    },
+    {
+      "interface": "IMailPriorityConverter",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Converters.MailPriorityConverter"
+    },
+    {
+      "interface": "IRecipientCollectionConverter",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Converters.RecipientCollectionConverter"
+    },
+
+    // Factories
+    {
+      "interface": "ILoggerFactory",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Factories.LoggerFactory"
+    },
+    {
+      "interface": "IEmailerFactory",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Factories.EmailerFactory"
+    },
+
+    // Formatters
+    {
+      "interface": "IExceptionFormatter",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Formatters.ExceptionFormatter"
+    },
+
+    // Registries
+    {
+      "interface": "IApplicationValuesRegistry",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Registries.ApplicationValuesRegistry"
+    },
+    {
+      "interface": "ISettingNamesRegistry",
+      "class": "GreenStone.SmallFarmsToolbox.Entities.Registries.SettingNamesRegistry"
+    }
+  ]
+}
