@@ -109,3 +109,33 @@ the matched class for the provided Interface.
   }
 ]
 ```
+Example of some basic setup could be:
+``` json
+"Assemblies": {
+ "Interfaces": [
+  "ServiceLocator.JSON.Interfaces"
+ ],
+
+ "Entities": [
+  "ServiceLocator.JSON.Entities"
+ ]
+},
+
+"Registration": [
+ {
+  "interface": "ILogger",
+  "class": "ServiceLocator.JSON.Entities.Logger",
+  "factory": "ILoggerFactory",
+  "factoryMethod": "GenerateLogger"
+ },
+ {
+  "interface": "ILoggerFactory",
+  "class": "ServiceLocator.JSON.Entities.LoggerFactory"
+ },
+ {
+  "interface": "IApple",
+  "class": "ServiceLocator.JSON.Entities.Apple",
+  "multiple": true
+ }
+]
+```
