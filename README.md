@@ -9,6 +9,9 @@ C# Service Locator based on a JSON configuration.  Fairly simple and restrictive
 * Factory creation from specified sources in Registration
 * Multiple source Assemblies
 
+## External Dependencies
+Newtonsoft.Json : https://github.com/JamesNK/Newtonsoft.Json
+
 ## Known Limitations / Restrictions
 This system enforces that all Entities or Classes have a base Construction using the IResolver only (no empty Constructor supported).  As well, any other Constructors that use more parameters must start with the IResolver as the first parameter.
 
