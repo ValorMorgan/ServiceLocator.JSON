@@ -19,6 +19,7 @@ This system enforces that all Entities or Classes have a base Construction using
 The following list is a collection of improvements I want to add to the system to help it be more robust and increase both performance and community support:
 * Allow Assemblies to come from any location and not just the Bin folder 
 * Modularity of IRegistrationRegistry to support custom Registration parameters and logic
+  * Thus far, this is looking like the use IRegistryModule that will be acted on with Func<IRegistryModule, object> operations
 * De-coupling of current Registration logic to moddable class and interface
 * Async support
 * Large amounts of Resolver calls support (i.e. system with many clients requesting objects)
@@ -28,6 +29,13 @@ The Resolver is the primary entry point for resolving any desired Entities.  Sim
 
 Example of call for an object that only uses the Resolver as the Constructor parameter:
 ``` c#
+public void Main(object[] args)
+{
+  IResolver _resolver = new Resolver();
+  ILogger _logger = _resolver.Resolve<ILogger>();
+  _logger.LogMessage("Logger is instaniated and works as expected.");
+}
+
 public class Logger : ILogger
 {
   public Logger(IResolver resolver)
@@ -45,17 +53,17 @@ public interface ILogger
 {
   void LogMessage(string message);
 }
-
-public void Main(object[] args)
-{
-  IResolver _resolver = new Resolver();
-  ILogger _logger = _resolver.Resolve<ILogger>();
-  _logger.LogMessage("Logger is instaniated and works as expected.");
-}
 ```
 
 Example of call for an object that uses the Resolver and other parameters in the Constructor:
 ``` c#
+public void Main(object[] args)
+{
+  IResolver _resolver = new Resolver();
+  ILogger _logger = _resolver.Resolve<ILogger>(new object[] { "Application" });
+  _logger.LogMessage("Logger is instaniated and works as expected.");
+}
+
 public class Logger : ILogger
 {
   public Logger(IResolver resolver)
@@ -80,13 +88,6 @@ public class Logger : ILogger
 public interface ILogger
 {
   void LogMessage(string message);
-}
-
-public void Main(object[] args)
-{
-  IResolver _resolver = new Resolver();
-  ILogger _logger = _resolver.Resolve<ILogger>(new[] { logSource = "Application" });
-  _logger.LogMessage("Logger is instaniated and works as expected.");
 }
 ```
 
