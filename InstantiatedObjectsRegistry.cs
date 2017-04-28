@@ -7,7 +7,7 @@ namespace ServiceLocator.JSON
     /// <summary>
     /// Houses all the Instantiated Objects within the Resolver.
     /// </summary>
-    internal class InstantiatedObjectsRegistry
+    internal class InstantiatedObjectsRepository
     {
         #region VARIABLES
         private static IList<InstantiatedObject> _objectCache = new List<InstantiatedObject>();
@@ -37,7 +37,7 @@ namespace ServiceLocator.JSON
         public void InsertObjectToCache(InstantiatedObject objectToInsert)
         {
             if (objectToInsert == null)
-                throw new NullReferenceException($"Cannot add a NULL {nameof(InstantiatedObject)} to the {nameof(InstantiatedObjectsRegistry)}");
+                throw new ArgumentNullException(nameof(objectToInsert), $"Cannot add a NULL {nameof(InstantiatedObject)} to the {nameof(InstantiatedObjectsRepository)}");
 
             objectToInsert.Validate();
 
@@ -45,6 +45,9 @@ namespace ServiceLocator.JSON
             if (!objectToInsert.AllowMultiple && DoesObjectInterfaceAndClassExist(objectToInsert.InterfaceType, objectToInsert.ClassType))
             {
                 InstantiatedObject objectToRemove = ObjectCache.First(obj => obj.InterfaceType == objectToInsert.InterfaceType && obj.ClassType == objectToInsert.ClassType);
+                if (objectToRemove == null)
+                    throw new NullReferenceException($"The object mapped to \"{objectToInsert.InterfaceType.Name}\" is marked to not allow Multiple, was found in the Repository, but could not be retrieved.");
+
                 ObjectCache.Remove(objectToRemove);
             }
 
@@ -54,7 +57,7 @@ namespace ServiceLocator.JSON
         /// <summary>
         /// Clears the cache of instantied objects.
         /// </summary>
-        public void ClearCachedObjects()
+        public void ClearCache()
         {
             // Dispose all objects.
             foreach (InstantiatedObject obj in ObjectCache)

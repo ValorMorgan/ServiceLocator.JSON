@@ -1,13 +1,19 @@
-﻿using System;
+﻿using ServiceLocator.JSON.Registries;
+using System;
 
-namespace ServiceLocator.JSON
+namespace ServiceLocator.JSON.Parsers
 {
-    internal class RegistrationRegistryParser
+    public class RegistryParser
     {
         #region CONSTRUCTORS
-        public RegistrationRegistryParser()
+        public RegistryParser()
         {
             _parser = new RegistrationParser();
+        }
+
+        public RegistryParser(RegistrationParser parser)
+        {
+            _parser = parser;
         }
         #endregion
 
@@ -16,7 +22,7 @@ namespace ServiceLocator.JSON
         #endregion
 
         #region METHODS
-        public Type GetRegistryClassType(IRegistrationRegistry registry)
+        public Type GetRegistryClassType(IResolverRegistry registry)
         {
             foreach (Type classType in _parser.GetClassTypesInAssemblies())
             {

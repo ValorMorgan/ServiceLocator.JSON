@@ -1,4 +1,9 @@
-﻿using System;
+﻿using ServiceLocator.JSON.Modules;
+using ServiceLocator.JSON.Parsers;
+using ServiceLocator.JSON.Registries;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace ServiceLocator.JSON
@@ -16,13 +21,41 @@ namespace ServiceLocator.JSON
         internal Mapper()
         {
             _parser = new RegistrationParser();
-            _registryParser = new RegistrationRegistryParser();
+            _registryParser = new RegistryParser(_parser);
+            _modules = new List<IResolverModule>();
+            RegisterPrivateModules();
+        }
+
+        internal Mapper(IList<IResolverModule> modules)
+            : this()
+        {
+            if (_modules == null)
+                _modules = new List<IResolverModule>();
+
+            foreach (IResolverModule module in modules)
+                AddModule(module);
+        }
+
+        internal Mapper(IList<IResolverModule> modules, string registrationFileName)
+            : this(modules)
+        {
+            _parser = new RegistrationParser(registrationFileName);
+            _registryParser = new RegistryParser(_parser);
+        }
+
+        internal Mapper(IList<IResolverModule> modules, string registrationFileName, string binFolderLocation)
+            : this(modules)
+        {
+            _parser = new RegistrationParser(registrationFileName, binFolderLocation);
+            _registryParser = new RegistryParser(_parser);
         }
         #endregion
 
         #region VARIALBES
         private RegistrationParser _parser;
-        private RegistrationRegistryParser _registryParser;
+        private RegistryParser _registryParser;
+
+        private IList<IResolverModule> _modules;
         #endregion
 
         #region METHODS
@@ -42,7 +75,7 @@ namespace ServiceLocator.JSON
             if (!interfaceType.IsInterface)
                 throw new InvalidOperationException($"Interface Type \"{interfaceType.FullName}\" did not resolve to an Interface.");
 
-            IRegistrationRegistry registry = _parser.GetRegistrationRegistry(interfaceType.Name);
+            IResolverRegistry registry = _parser.GetRegistrationRegistry(interfaceType.Name);
             return _registryParser.GetRegistryClassType(registry);
         }
         #endregion
@@ -58,8 +91,7 @@ namespace ServiceLocator.JSON
         public TInterface MapInterfaceTypeToClassInstance<TInterface>(object[] constructorData, IResolver resolver)
         {
             Type interfaceType = GetInterfaceType<TInterface>();
-
-            return (TInterface) MapInterfaceTypeToClassInstance(interfaceType, constructorData, resolver);
+            return (TInterface)MapInterfaceTypeToClassInstance(interfaceType, constructorData, resolver, null, null);
         }
 
         /// <summary>
@@ -71,44 +103,49 @@ namespace ServiceLocator.JSON
         /// <returns>A Class instance of the Interface Type.</returns>
         public object MapInterfaceTypeToClassInstance(Type interfaceType, object[] constructorData, IResolver resolver)
         {
-            Type classType = MapInterfaceTypeToClassType(interfaceType);
-            IRegistrationRegistry registry = _parser.GetRegistrationRegistry(interfaceType.Name);
+            return MapInterfaceTypeToClassInstance(interfaceType, constructorData, resolver, null, null);
+        }
 
-            // If we specified to use the Factory and we are only using the base constructor
-            // Don't wanna use the factory if we expect a specific constructor to be used
-            if (!string.IsNullOrEmpty(registry.Factory) && constructorData.Length <= 1)
+        public object MapInterfaceTypeToClassInstance(Type interfaceType, object[] constructorData, IResolver resolver, Func<object, IResolverModule, Type, IResolver, object> moduleLogic)
+        {
+            return MapInterfaceTypeToClassInstance(interfaceType, constructorData, resolver, moduleLogic, null);
+        }
+
+        public object MapInterfaceTypeToClassInstance(Type interfaceType, object[] constructorData, IResolver resolver, Func<object, IResolverModule, Type, IResolver, object> moduleLogic, Func<IList<IResolverModule>, IList<IResolverModule>> moduleFilter)
+        {
+            // Check if we have moduler logic to act on (otherwise we are doing normal resolving operations)
+            if (moduleLogic != null)
             {
-                // Generate class from Factory
-                IRegistrationRegistry factoryRegistry = _parser.GetRegistrationRegistry(registry.Factory);
-                foreach (Type factoryInterfaceType in _parser.GetInterfaceTypesInAssemblies())
-                {
-                    if (factoryInterfaceType.Name.Equals(factoryRegistry.Interface))
-                    {
-                        object factory = resolver.Resolve(factoryInterfaceType, null);
-                        return factory.GetType()
-                            .GetMethod(registry.FactoryMethod)
-                            .Invoke(factory, new[] { resolver });
-                    }
-                }
+                IList<IResolverModule> modules = _modules;
+                if (moduleFilter != null)
+                    modules = moduleFilter(modules);
 
-                throw new TypeAccessException($"Interface \"{interfaceType.FullName}\" was marked to use a Factory but the Factory could not be mapped to. Searched for \"{factoryRegistry.Class}\"");
+                object moduleReturn = null;
+                foreach (IResolverModule module in modules)
+                    moduleReturn = moduleLogic(moduleReturn, module, interfaceType, resolver);
+
+                if (moduleReturn != null)
+                    return moduleReturn;
+
+                throw new NullReferenceException($"{nameof(IResolverModule)}'s were acted upon for Interface \"{interfaceType.Name}\" but no object was returned. If modules are used, at least one {nameof(IResolverModule)} should return the finished object and no others should overwrite the return with NULL.");
             }
 
+            Type classType = MapInterfaceTypeToClassType(interfaceType);
             return CreateClasInstance(classType, constructorData);
         }
         #endregion
 
         #region Map To InstantiatedObject
-        public InstantiatedObject MapInterfaceTypeToInstantiatedObject<TInterface>(object[] constructorData, IResolver resolver)
+        public InstantiatedObject MapInterfaceTypeToInstantiatedObject<TInterface>(object[] constructorData, IResolver resolver, Func<object, IResolverModule, Type, IResolver, object> moduleLogic, Func<IList<IResolverModule>, IList<IResolverModule>> moduleFilter)
         {
             Type interfaceType = GetInterfaceType<TInterface>();
-            return MapInterfaceTypeToInstantiatedObject(interfaceType, constructorData, resolver);
+            return MapInterfaceTypeToInstantiatedObject(interfaceType, constructorData, resolver, moduleLogic, moduleFilter);
         }
 
-        public InstantiatedObject MapInterfaceTypeToInstantiatedObject(Type interfaceType, object[] constructorData, IResolver resolver)
+        public InstantiatedObject MapInterfaceTypeToInstantiatedObject(Type interfaceType, object[] constructorData, IResolver resolver, Func<object, IResolverModule, Type, IResolver, object> moduleLogic, Func<IList<IResolverModule>, IList<IResolverModule>> moduleFilter)
         {
-            object newInstance = MapInterfaceTypeToClassInstance(interfaceType, constructorData, resolver);
-            IRegistrationRegistry registry = _parser.GetRegistrationRegistry(interfaceType.Name);
+            object newInstance = MapInterfaceTypeToClassInstance(interfaceType, constructorData, resolver, moduleLogic, moduleFilter);
+            IResolverRegistry registry = _parser.GetRegistrationRegistry(interfaceType.Name);
 
             return new InstantiatedObject()
             {
@@ -186,6 +223,18 @@ namespace ServiceLocator.JSON
         }
         #endregion
 
+        #region Modules
+        public void AddModule(IResolverModule module)
+        {
+            _modules.Add(module);
+        }
+
+        public bool RemoveModule(IResolverModule moduleToRemove)
+        {
+            return _modules.Remove(moduleToRemove);
+        }
+        #endregion
+
         #region PRIVATE METHODS
         private object CreateClasInstance(Type classType, object[] constructorData)
         {
@@ -194,6 +243,11 @@ namespace ServiceLocator.JSON
 
             Assembly assemblyToUse = Assembly.GetAssembly(classType);
             return Activator.CreateInstance(assemblyToUse.GetType(classType.FullName), constructorData);
+        }
+
+        private void RegisterPrivateModules()
+        {
+            AddModule(new FactoryModule());
         }
         #endregion
 
